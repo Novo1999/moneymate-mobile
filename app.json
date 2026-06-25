@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "MoneyMate",
+    "slug": "moneymate-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "moneymatemobile",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.novodip.moneymatemobile",
+      "buildNumber": "1",
+      "icon": "./assets/images/icon.png",
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0D9488",
+        "foregroundImage": "./assets/images/icon.png"
+      },
+      "versionCode": 1,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.novodip.moneymatemobile"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/icon-192.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0D9488",
+          "image": "./assets/images/icon.png",
+          "imageWidth": 180
+        }
+      ],
+      "expo-secure-store",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_REVERSED_IOS_CLIENT_ID"
+        }
+      ],
+      "@react-native-community/datetimepicker"
+    ],
+    "experiments": {
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {}
+    },
+    "owner": "novodip"
+  }
+}
