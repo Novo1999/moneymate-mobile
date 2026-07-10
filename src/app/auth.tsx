@@ -7,10 +7,12 @@ import { authSchema, type AuthFormValues } from '@/lib/validation/auth'
 import { useAuth } from '@/state/auth'
 import { useTheme } from '@/theme/ThemeProvider'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 type Mode = 'signin' | 'signup'
@@ -26,7 +28,7 @@ export default function AuthScreen() {
     control,
     handleSubmit,
     setValue,
-    clearErrors,
+    reset,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<AuthFormValues>({
@@ -38,9 +40,9 @@ export default function AuthScreen() {
 
   const switchMode = (next: Mode) => {
     setMode(next)
-    setValue('mode', next)
     setError(null)
-    clearErrors()
+    // Start the other tab with a clean slate — values must not leak between sign in and sign up.
+    reset({ mode: next, name: '', email: '', password: '', confirmPassword: '', currency: 'USD' })
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -76,7 +78,13 @@ export default function AuthScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }} edges={['bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 30 }}>
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bottomOffset={24}
+        contentContainerStyle={{ paddingBottom: 30 }}
+      >
         {/* Brand header */}
         <LinearGradient
           colors={colors.gradient}
@@ -84,19 +92,11 @@ export default function AuthScreen() {
           end={{ x: 1, y: 1 }}
           style={{ paddingTop: 64, paddingBottom: 40, paddingHorizontal: 28, borderBottomLeftRadius: 34, borderBottomRightRadius: 34 }}
         >
-          <View
-            style={{
-              width: 58,
-              height: 58,
-              borderRadius: radii.lg,
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 18,
-            }}
-          >
-            <Icon name="wallet" size={30} color="#fff" />
-          </View>
+          <Image
+            source={require('@/assets/images/logo-mark.png')}
+            style={{ width: 64, height: 64, marginBottom: 18 }}
+            contentFit="contain"
+          />
           <AppText variant="heading" size={30} color="#fff">
             MoneyMate
           </AppText>
@@ -268,7 +268,7 @@ export default function AuthScreen() {
             </AppText>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   )
 }

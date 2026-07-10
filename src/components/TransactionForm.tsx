@@ -1,6 +1,6 @@
 import { Icon } from '@/components/Icon'
 import { ModalHeader } from '@/components/ModalHeader'
-import { AppText, Button, Field } from '@/components/ui'
+import { AmountInput, AppText, Button, ConfirmSheet, Field } from '@/components/ui'
 import { Loader } from '@/components/ui/States'
 import { categoriesForKind, categoryEmoji, categoryLabel } from '@/constants/categories'
 import { currencySymbol } from '@/constants/currency'
@@ -18,7 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useSetAtom } from 'jotai'
 import { useState } from 'react'
-import { Alert, Platform, Pressable, ScrollView, View } from 'react-native'
+import { Platform, Pressable, ScrollView, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export function TransactionForm({ existing }: { existing?: Transaction }) {
@@ -39,7 +40,11 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
   const [date, setDate] = useState<Date>(existing ? new Date(existing.createdAt) : new Date())
   const [showPicker, setShowPicker] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // measured width of the category grid → exact cell size for 4 fluid columns
+  const [gridWidth, setGridWidth] = useState(0)
 
   const categories = categoriesForKind(type)
   const typeColor = type === 'income' ? colors.income : colors.danger
@@ -80,29 +85,31 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
     }
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!existing) return
-    Alert.alert('Delete transaction', 'This will permanently remove this transaction and adjust your balance.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteTransaction(existing.id)
-            bumpData((v) => v + 1)
-            router.back()
-          } catch (e) {
-            setError(e instanceof ApiError ? e.message : 'Failed to delete')
-          }
-        },
-      },
-    ])
+    setDeleting(true)
+    try {
+      await deleteTransaction(existing.id)
+      bumpData((v) => v + 1)
+      setDeleteOpen(false)
+      router.back()
+    } catch (e) {
+      setDeleteOpen(false)
+      setError(e instanceof ApiError ? e.message : 'Failed to delete')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }} edges={['top', 'bottom']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bottomOffset={24}
+      >
         <ModalHeader title={isEdit ? 'Edit Transaction' : 'New Transaction'} />
 
         {/* type toggle */}
@@ -130,36 +137,30 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
           <AppText size={13} color={colors.muted} weight="semibold">
             Amount
           </AppText>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
-            <AppText variant="heading" size={34} color={typeColor}>
-              {currencySymbol(user?.currency)}
-            </AppText>
-            <Field
-              value={amount}
-              onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-              style={{ fontSize: 40, textAlign: 'center', minWidth: 120, color: typeColor }}
-              // strip the boxed Field chrome for the big amount input
-            />
-          </View>
+          <AmountInput symbol={currencySymbol(user?.currency)} value={amount} onChangeText={setAmount} color={typeColor} />
         </View>
 
         {/* category grid */}
         <AppText weight="bold" size={13} color={colors.muted} style={{ marginBottom: 12, marginLeft: 2 }}>
           Category
         </AppText>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
+        <View
+          onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}
+          style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}
+        >
           {categories.map((c) => {
             const selected = category === c
+            // 4 equal columns filling the measured row; tiles stay square and uniform on the last row
+            const cellWidth = gridWidth ? Math.floor((gridWidth - 3 * 12) / 4) : 52
+            const tile = { width: '100%', aspectRatio: 1, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' } as const
             return (
-              <Pressable key={c} onPress={() => setCategory(c)} style={{ width: '21%', alignItems: 'center', gap: 5 }}>
+              <Pressable key={c} onPress={() => setCategory(c)} style={{ width: cellWidth, alignItems: 'center', gap: 5 }}>
                 {selected ? (
-                  <LinearGradient colors={colors.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 52, height: 52, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' }}>
+                  <LinearGradient colors={colors.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={tile}>
                     <AppText size={22}>{categoryEmoji(c)}</AppText>
                   </LinearGradient>
                 ) : (
-                  <View style={{ width: 52, height: 52, borderRadius: radii.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={[tile, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
                     <AppText size={22}>{categoryEmoji(c)}</AppText>
                   </View>
                 )}
@@ -230,10 +231,12 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
             value={date}
             mode="date"
             maximumDate={new Date()}
-            onChange={(_, selected) => {
+            onValueChange={(_, selected) => {
+              // Android's dialog closes itself after a pick; iOS shows an inline picker that stays.
               setShowPicker(Platform.OS === 'ios')
-              if (selected) setDate(selected)
+              setDate(selected)
             }}
+            onDismiss={() => setShowPicker(false)}
           />
         ) : null}
 
@@ -251,9 +254,18 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
         <Button title={isEdit ? 'Save changes' : 'Save transaction'} onPress={submit} loading={submitting} style={{ marginTop: 20 }} />
 
         {isEdit ? (
-          <Button title="Delete transaction" variant="danger" icon="trash" onPress={confirmDelete} style={{ marginTop: 12 }} />
+          <Button title="Delete transaction" variant="danger" icon="trash" onPress={() => setDeleteOpen(true)} style={{ marginTop: 12 }} />
         ) : null}
-      </ScrollView>
+      </KeyboardAwareScrollView>
+
+      <ConfirmSheet
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Delete transaction?"
+        message="This will permanently remove this transaction and adjust your balance."
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </SafeAreaView>
   )
 }

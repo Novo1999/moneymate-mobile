@@ -1,19 +1,21 @@
 import { Icon, type IconName } from '@/components/Icon'
-import { AppText, Avatar, Button, Pill } from '@/components/ui'
+import { AppText, Avatar, Button, ConfirmSheet, Pill, Sheet } from '@/components/ui'
 import { currencySymbol, POPULAR_CURRENCIES } from '@/constants/currency'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/state/auth'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Modal, Pressable, ScrollView, Switch, View } from 'react-native'
+import { Pressable, ScrollView, Switch, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ProfileScreen() {
-  const { colors, radii, mode, setPreference } = useTheme()
+  const { colors, mode, setPreference } = useTheme()
   const router = useRouter()
   const { user, logout, updateUser } = useAuth()
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [savingCurrency, setSavingCurrency] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
 
   const isDark = mode === 'dark'
 
@@ -24,6 +26,16 @@ export default function ProfileScreen() {
     } finally {
       setSavingCurrency(false)
       setCurrencyOpen(false)
+    }
+  }
+
+  const confirmLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await logout()
+    } finally {
+      setLoggingOut(false)
+      setLogoutOpen(false)
     }
   }
 
@@ -73,7 +85,7 @@ export default function ProfileScreen() {
         </Group>
 
         <View style={{ marginTop: 24 }}>
-          <Button title="Log out" variant="danger" icon="logout" onPress={logout} />
+          <Button title="Log out" variant="danger" icon="logout" onPress={() => setLogoutOpen(true)} />
         </View>
 
         <AppText size={11.5} color={colors.mutedSoft} style={{ textAlign: 'center', marginTop: 20 }}>
@@ -81,21 +93,29 @@ export default function ProfileScreen() {
         </AppText>
       </ScrollView>
 
-      {/* Currency picker modal */}
-      <Modal visible={currencyOpen} transparent animationType="slide" onRequestClose={() => setCurrencyOpen(false)}>
-        <Pressable style={{ flex: 1, backgroundColor: colors.overlay }} onPress={() => setCurrencyOpen(false)} />
-        <View style={{ backgroundColor: colors.screen, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl, padding: 22, paddingBottom: 36 }}>
-          <View style={{ width: 46, height: 5, borderRadius: 999, backgroundColor: colors.borderStrong, alignSelf: 'center', marginBottom: 16 }} />
-          <AppText variant="heading" size={18} color={colors.heading} style={{ textAlign: 'center', marginBottom: 18 }}>
-            Choose currency
-          </AppText>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
-            {POPULAR_CURRENCIES.map((c) => (
-              <Pill key={c} label={`${c} ${currencySymbol(c)}`} active={user?.currency === c} onPress={() => !savingCurrency && pickCurrency(c)} />
-            ))}
-          </View>
+      {/* Currency picker sheet */}
+      <Sheet open={currencyOpen} onClose={() => setCurrencyOpen(false)} dismissable={!savingCurrency}>
+        <AppText variant="heading" size={18} color={colors.heading} style={{ textAlign: 'center', marginBottom: 18 }}>
+          Choose currency
+        </AppText>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center' }}>
+          {POPULAR_CURRENCIES.map((c) => (
+            <Pill key={c} label={`${c} ${currencySymbol(c)}`} active={user?.currency === c} onPress={() => !savingCurrency && pickCurrency(c)} />
+          ))}
         </View>
-      </Modal>
+      </Sheet>
+
+      {/* Log out confirmation sheet */}
+      <ConfirmSheet
+        open={logoutOpen}
+        onClose={() => setLogoutOpen(false)}
+        icon="logout"
+        title="Log out?"
+        message="You'll need to sign in again to see your accounts and transactions."
+        confirmLabel="Log out"
+        loading={loggingOut}
+        onConfirm={confirmLogout}
+      />
     </SafeAreaView>
   )
 }

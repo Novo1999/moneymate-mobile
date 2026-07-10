@@ -1,7 +1,7 @@
 import { Icon, type IconName } from '@/components/Icon'
 import { DonutChart } from '@/components/DonutChart'
 import { TransactionRow } from '@/components/TransactionRow'
-import { AppText, Avatar, Card, IconButton } from '@/components/ui'
+import { AppText, Avatar, Card } from '@/components/ui'
 import { EmptyState, Loader } from '@/components/ui/States'
 import { categoryLabel } from '@/constants/categories'
 import { listAccounts } from '@/lib/api/accountType'
@@ -95,7 +95,6 @@ export default function HomeScreen() {
               </AppText>
             </View>
           </View>
-          <IconButton name="bell" badge onPress={() => {}} />
         </View>
 
         {/* Balance hero */}

@@ -1,5 +1,5 @@
 import { Icon } from '@/components/Icon'
-import { AppText, IconButton } from '@/components/ui'
+import { AppText, ConfirmSheet, IconButton } from '@/components/ui'
 import { EmptyState, Loader } from '@/components/ui/States'
 import { useAsync } from '@/hooks/useAsync'
 import { deleteCategory, listCategories } from '@/lib/api/category'
@@ -8,8 +8,8 @@ import { useTheme } from '@/theme/ThemeProvider'
 import type { Category } from '@/types/models'
 import { useRouter } from 'expo-router'
 import { useAtomValue } from 'jotai'
-import { useMemo } from 'react'
-import { Alert, Pressable, ScrollView, View } from 'react-native'
+import { useMemo, useState } from 'react'
+import { Pressable, ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function CategoriesScreen() {
@@ -26,23 +26,26 @@ export default function CategoriesScreen() {
     }
   }, [categoriesQ.data])
 
+  const [toDelete, setToDelete] = useState<Category | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
   const onDelete = (cat: Category) => {
     if (!cat.id) return
-    Alert.alert('Delete category', `Remove "${cat.name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteCategory(cat.id!)
-            categoriesQ.reload()
-          } catch {
-            // ignore
-          }
-        },
-      },
-    ])
+    setToDelete(cat)
+  }
+
+  const confirmDelete = async () => {
+    if (!toDelete?.id) return
+    setDeleting(true)
+    try {
+      await deleteCategory(toDelete.id)
+      categoriesQ.reload()
+    } catch {
+      // ignore
+    } finally {
+      setDeleting(false)
+      setToDelete(null)
+    }
   }
 
   const Section = ({ title, items }: { title: string; items: Category[] }) =>
@@ -98,6 +101,15 @@ export default function CategoriesScreen() {
           </>
         )}
       </ScrollView>
+
+      <ConfirmSheet
+        open={toDelete !== null}
+        onClose={() => setToDelete(null)}
+        title="Delete category?"
+        message={`"${toDelete?.name ?? ''}" will be removed from your categories.`}
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </SafeAreaView>
   )
 }

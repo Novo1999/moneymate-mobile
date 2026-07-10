@@ -1,6 +1,6 @@
 import { ModalHeader } from '@/components/ModalHeader'
 import { TransactionRow } from '@/components/TransactionRow'
-import { AppText, Button, Field } from '@/components/ui'
+import { AppText, Button, ConfirmSheet, Field } from '@/components/ui'
 import { EmptyState, Loader } from '@/components/ui/States'
 import { useAsync } from '@/hooks/useAsync'
 import { deleteAccount, editAccount, getAccount } from '@/lib/api/accountType'
@@ -14,7 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
-import { Alert, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function AccountDetail() {
@@ -30,6 +30,8 @@ export default function AccountDetail() {
 
   const [name, setName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -55,23 +57,19 @@ export default function AccountDetail() {
     }
   }
 
-  const confirmDelete = () => {
-    Alert.alert('Delete account', 'This permanently deletes the account and its transactions.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await deleteAccount(accountId)
-            bumpData((v) => v + 1)
-            router.back()
-          } catch (e) {
-            setError(e instanceof ApiError ? e.message : 'Failed to delete')
-          }
-        },
-      },
-    ])
+  const confirmDelete = async () => {
+    setDeleting(true)
+    try {
+      await deleteAccount(accountId)
+      bumpData((v) => v + 1)
+      setDeleteOpen(false)
+      router.back()
+    } catch (e) {
+      setDeleteOpen(false)
+      setError(e instanceof ApiError ? e.message : 'Failed to delete')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   return (
@@ -108,7 +106,7 @@ export default function AccountDetail() {
             ) : null}
 
             <Button title="Save changes" onPress={save} loading={saving} style={{ marginTop: 18 }} />
-            <Button title="Delete account" variant="danger" icon="trash" onPress={confirmDelete} style={{ marginTop: 12 }} />
+            <Button title="Delete account" variant="danger" icon="trash" onPress={() => setDeleteOpen(true)} style={{ marginTop: 12 }} />
 
             <AppText variant="heading" size={16} color={colors.heading} style={{ marginTop: 28, marginBottom: 14 }}>
               Recent activity
@@ -127,6 +125,15 @@ export default function AccountDetail() {
           </>
         )}
       </ScrollView>
+
+      <ConfirmSheet
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        title="Delete account?"
+        message="This permanently deletes the account and its transactions."
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </SafeAreaView>
   )
 }

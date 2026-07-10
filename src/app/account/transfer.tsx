@@ -1,6 +1,6 @@
 import { Icon } from '@/components/Icon'
 import { ModalHeader } from '@/components/ModalHeader'
-import { AppText, Button, Field } from '@/components/ui'
+import { AmountInput, AppText, Button, Field } from '@/components/ui'
 import { EmptyState, Loader } from '@/components/ui/States'
 import { currencySymbol } from '@/constants/currency'
 import { useAsync } from '@/hooks/useAsync'
@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router'
 import { useSetAtom } from 'jotai'
 import { useEffect, useState } from 'react'
 import { Pressable, ScrollView, View } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function TransferScreen() {
@@ -96,7 +97,13 @@ export default function TransferScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }} edges={['top', 'bottom']}>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }} keyboardShouldPersistTaps="handled">
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        bottomOffset={24}
+      >
         <ModalHeader title="Transfer Money" />
 
         {accountsQ.loading ? (
@@ -117,12 +124,7 @@ export default function TransferScreen() {
               <AppText size={13} color={colors.muted} weight="semibold">
                 Amount
               </AppText>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                <AppText variant="heading" size={34} color={colors.primary}>
-                  {currencySymbol(user?.currency)}
-                </AppText>
-                <Field value={amount} onChangeText={(t) => setAmount(t.replace(/[^0-9.]/g, ''))} placeholder="0.00" keyboardType="decimal-pad" style={{ fontSize: 38, textAlign: 'center', minWidth: 120, color: colors.primary }} />
-              </View>
+              <AmountInput symbol={currencySymbol(user?.currency)} value={amount} onChangeText={setAmount} />
             </View>
 
             <Field label="Note (optional)" placeholder="What's this for?" value={note} onChangeText={setNote} autoCapitalize="sentences" />
@@ -138,7 +140,7 @@ export default function TransferScreen() {
             <Button title="Transfer" icon="transfer" onPress={submit} loading={submitting} style={{ marginTop: 20 }} />
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </SafeAreaView>
   )
 }

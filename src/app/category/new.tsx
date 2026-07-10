@@ -67,14 +67,16 @@ export default function NewCategory() {
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
           {EMOJIS.map((e) => {
             const selected = icon === e
+            // fluid cells: 4 per row, growing with screen width (kept square via aspectRatio)
+            const tile = { width: '100%', aspectRatio: 1, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' } as const
             return (
-              <Pressable key={e} onPress={() => setIcon(e)}>
+              <Pressable key={e} onPress={() => setIcon(e)} style={{ width: '21%', flexGrow: 1 }}>
                 {selected ? (
-                  <LinearGradient colors={colors.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ width: 50, height: 50, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' }}>
+                  <LinearGradient colors={colors.gradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={tile}>
                     <AppText size={22}>{e}</AppText>
                   </LinearGradient>
                 ) : (
-                  <View style={{ width: 50, height: 50, borderRadius: radii.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={[tile, { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }]}>
                     <AppText size={22}>{e}</AppText>
                   </View>
                 )}
