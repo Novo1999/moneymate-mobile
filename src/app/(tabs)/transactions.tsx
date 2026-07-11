@@ -38,40 +38,42 @@ export default function TransactionsScreen() {
   const [settledKey, setSettledKey] = useState<string | null>(null)
   const loading = !!activeAccountId && settledKey !== requestKey
 
-  // `replaceKey` non-null = fresh first page for that request key; null = append next page.
-  const fetchPage = useCallback(
-    async (nextCursor: number, replaceKey: string | null) => {
-      if (!activeAccountId) return
-      const id = ++reqId.current
-      const replace = replaceKey !== null
-      try {
-        const page = await getTransactionsPaginated(activeAccountId, nextCursor, PAGE_SIZE, filter)
-        if (id !== reqId.current) return
-        const incoming = page?.transactions ?? []
-        setItems((prev) => (replace ? incoming : [...prev, ...incoming]))
-        setCursor(page?.nextCursor ?? 0)
-        setHasMore(Boolean(page?.nextCursor))
-      } catch {
-        if (id === reqId.current && replace) setItems([])
-      } finally {
-        if (id === reqId.current) {
-          setLoadingMore(false)
-          if (replaceKey !== null) setSettledKey(replaceKey)
-        }
-      }
-    },
-    [activeAccountId, filter],
-  )
+  const applyPage = useCallback((page: Awaited<ReturnType<typeof getTransactionsPaginated>>, replace: boolean) => {
+    const incoming = page?.transactions ?? []
+    setItems((prev) => (replace ? incoming : [...prev, ...incoming]))
+    setCursor(page?.nextCursor ?? 0)
+    setHasMore(Boolean(page?.nextCursor))
+  }, [])
 
+  // Fetch the first page whenever account / filter / dataVersion change.
+  // All setState happens in async callbacks — nothing synchronous in the effect body.
   useEffect(() => {
-    fetchPage(0, requestKey)
-  }, [fetchPage, requestKey])
+    if (!activeAccountId) return
+    const id = ++reqId.current
+    const fetchFirstPage = async () => {
+      try {
+        const page = await getTransactionsPaginated(activeAccountId, 0, PAGE_SIZE, filter)
+        if (id === reqId.current) applyPage(page, true)
+      } catch {
+        if (id === reqId.current) setItems([])
+      } finally {
+        if (id === reqId.current) setSettledKey(requestKey)
+      }
+    }
+    fetchFirstPage()
+  }, [activeAccountId, filter, requestKey, applyPage])
 
-  const loadMore = () => {
-    if (!loadingMore && hasMore && cursor) {
-      // Set here (from the scroll callback) so fetchPage never sets state synchronously in the effect path.
-      setLoadingMore(true)
-      fetchPage(cursor, null)
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || !cursor || !activeAccountId) return
+    setLoadingMore(true)
+    const id = ++reqId.current
+    try {
+      const page = await getTransactionsPaginated(activeAccountId, cursor, PAGE_SIZE, filter)
+      if (id === reqId.current) applyPage(page, false)
+    } catch {
+      // Keep the current list; the user can scroll again to retry.
+    } finally {
+      setLoadingMore(false)
     }
   }
 

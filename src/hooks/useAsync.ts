@@ -31,18 +31,20 @@ export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], enabled = tru
   useEffect(() => {
     if (!enabled) return
     let active = true
-    fn()
-      .then((result) => {
+    const run = async () => {
+      try {
+        const result = await fn()
         if (active) {
           setData(result)
           setSettled({ key, error: null })
         }
-      })
-      .catch((e) => {
+      } catch (e) {
         if (active) {
           setSettled({ key, error: e instanceof Error ? e.message : 'Something went wrong' })
         }
-      })
+      }
+    }
+    run()
     return () => {
       active = false
     }

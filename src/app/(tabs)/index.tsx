@@ -12,11 +12,11 @@ import { useAsync } from '@/hooks/useAsync'
 import { dataVersionAtom, editingTransactionAtom } from '@/state/atoms'
 import { useAuth } from '@/state/auth'
 import { useTheme } from '@/theme/ThemeProvider'
-import { endOfMonth, format, startOfMonth } from 'date-fns'
+import { addMonths, endOfMonth, format, isAfter, startOfMonth, subMonths } from 'date-fns'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Animated, {
@@ -46,10 +46,13 @@ export default function HomeScreen() {
   const dataVersion = useAtomValue(dataVersionAtom)
   const setEditingTx = useSetAtom(editingTransactionAtom)
 
-  const { from, to } = useMemo(() => {
-    const now = new Date()
-    return { from: startOfMonth(now).toISOString(), to: endOfMonth(now).toISOString() }
-  }, [])
+  // Month shown in the spending overview — steppable like the web app's DateController.
+  const [monthDate, setMonthDate] = useState(() => new Date())
+  const canGoForward = !isAfter(startOfMonth(addMonths(monthDate, 1)), startOfMonth(new Date()))
+  const { from, to } = useMemo(
+    () => ({ from: startOfMonth(monthDate).toISOString(), to: endOfMonth(monthDate).toISOString() }),
+    [monthDate],
+  )
 
   const accountsQ = useAsync(() => listAccounts(), [dataVersion])
   const infoQ = useAsync(
@@ -214,12 +217,31 @@ export default function HomeScreen() {
         </View>
 
         {/* Spending overview */}
-        <SectionHeader title="Spending Overview" actionLabel={format(new Date(), 'MMMM')} />
+        <SectionHeader
+          title="Spending Overview"
+          action={
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Pressable onPress={() => setMonthDate((d) => subMonths(d, 1))} hitSlop={10}>
+                <Icon name="chevron-left" size={17} color={colors.primary} />
+              </Pressable>
+              <AppText size={13} weight="bold" color={colors.primary}>
+                {format(monthDate, 'MMMM yyyy')}
+              </AppText>
+              <Pressable onPress={() => setMonthDate((d) => addMonths(d, 1))} hitSlop={10} disabled={!canGoForward}>
+                <Icon name="chevron-right" size={17} color={canGoForward ? colors.primary : colors.mutedSoft} />
+              </Pressable>
+            </View>
+          }
+        />
         <Card>
           {infoQ.loading ? (
             <Loader size="small" />
           ) : segments.length === 0 ? (
-            <EmptyState icon="chart-pie" title="No spending yet" subtitle="Your expenses this month will appear here." />
+            <EmptyState
+              icon="chart-pie"
+              title="No spending yet"
+              subtitle={`Your expenses for ${format(monthDate, 'MMMM')} will appear here.`}
+            />
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
               <DonutChart
@@ -315,20 +337,31 @@ function HeroChip({ icon, label, value }: { icon: IconName; label: string; value
   )
 }
 
-function SectionHeader({ title, actionLabel, onAction }: { title: string; actionLabel?: string; onAction?: () => void }) {
+function SectionHeader({
+  title,
+  actionLabel,
+  onAction,
+  action,
+}: {
+  title: string
+  actionLabel?: string
+  onAction?: () => void
+  action?: ReactNode
+}) {
   const { colors } = useTheme()
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 26, marginBottom: 14 }}>
       <AppText variant="heading" size={17} color={colors.heading}>
         {title}
       </AppText>
-      {actionLabel ? (
-        <Pressable onPress={onAction}>
-          <AppText size={13} weight="bold" color={colors.primary}>
-            {actionLabel}
-          </AppText>
-        </Pressable>
-      ) : null}
+      {action ??
+        (actionLabel ? (
+          <Pressable onPress={onAction}>
+            <AppText size={13} weight="bold" color={colors.primary}>
+              {actionLabel}
+            </AppText>
+          </Pressable>
+        ) : null)}
     </View>
   )
 }

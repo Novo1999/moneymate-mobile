@@ -22,11 +22,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [preference, setPreferenceState] = useState<ThemePreference>('system')
 
   useEffect(() => {
-    AsyncStorage.getItem(PREFERENCE_KEY).then((stored) => {
+    const loadPreference = async () => {
+      const stored = await AsyncStorage.getItem(PREFERENCE_KEY)
       if (stored === 'light' || stored === 'dark' || stored === 'system') {
         setPreferenceState(stored)
       }
-    })
+    }
+    loadPreference()
   }, [])
 
   const setPreference = (next: ThemePreference) => {
