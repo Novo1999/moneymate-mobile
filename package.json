@@ -11,7 +11,11 @@
     "lint": "expo lint",
     "prebuild:clean": "expo prebuild --clean",
     "prebuild:clean:android": "expo prebuild --clean -p android",
-    "prebuild:clean:ios": "expo prebuild --clean -p ios"
+    "prebuild:clean:ios": "expo prebuild --clean -p ios",
+    "build:dev": "eas build --profile development --platform android",
+    "build:preview": "eas build --profile preview --platform android",
+    "build:prod": "eas build --profile production --platform android",
+    "build:ios": "eas build --profile production --platform ios"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
