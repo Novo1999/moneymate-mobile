@@ -16,9 +16,21 @@ import { endOfMonth, format, startOfMonth } from 'date-fns'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useAtomValue, useSetAtom } from 'jotai'
-import { useMemo } from 'react'
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native'
+import { useEffect, useMemo } from 'react'
+import { Pressable, RefreshControl, ScrollView, useWindowDimensions, View } from 'react-native'
+import { Gesture, GestureDetector } from 'react-native-gesture-handler'
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { scheduleOnRN } from 'react-native-worklets'
+
+const SWIPE_THRESHOLD = 72
 
 function greeting() {
   const h = new Date().getHours()
@@ -30,7 +42,7 @@ function greeting() {
 export default function HomeScreen() {
   const { colors, radii } = useTheme()
   const router = useRouter()
-  const { user, activeAccountId } = useAuth()
+  const { user, activeAccountId, setActiveAccount } = useAuth()
   const dataVersion = useAtomValue(dataVersionAtom)
   const setEditingTx = useSetAtom(editingTransactionAtom)
 
@@ -68,6 +80,43 @@ export default function HomeScreen() {
     recentQ.reload()
   }
 
+  const { width: screenWidth } = useWindowDimensions()
+  const canSwipeAccounts = accounts.length > 1
+  const heroTranslateX = useSharedValue(0)
+
+  // Called once the old card has fully slid out to the left: swap the account,
+  // park the card off-screen right, and slide it back in carousel-style.
+  const switchToNextAccount = () => {
+    if (!canSwipeAccounts) return
+    const idx = accounts.findIndex((a) => a.id === activeAccount?.id)
+    const next = accounts[(idx + 1) % accounts.length]
+    setActiveAccount(next.id)
+    heroTranslateX.value = screenWidth
+    heroTranslateX.value = withTiming(0, { duration: 280 })
+  }
+
+  const heroPan = Gesture.Pan()
+    .enabled(canSwipeAccounts)
+    .activeOffsetX(-16)
+    .failOffsetY([-14, 14])
+    .onUpdate((e) => {
+      // Track the finger going left; rubber-band slightly on rightward drags.
+      heroTranslateX.value = e.translationX < 0 ? e.translationX : e.translationX * 0.12
+    })
+    .onEnd((e) => {
+      if (e.translationX < -SWIPE_THRESHOLD) {
+        heroTranslateX.value = withTiming(-screenWidth, { duration: 200 }, (finished) => {
+          if (finished) scheduleOnRN(switchToNextAccount)
+        })
+      } else {
+        heroTranslateX.value = withSpring(0, { damping: 18, stiffness: 220 })
+      }
+    })
+  const heroStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: heroTranslateX.value }],
+    opacity: 1 - Math.min(1, Math.abs(heroTranslateX.value) / screenWidth) * 0.5,
+  }))
+
   const quickActions: { icon: IconName; label: string; onPress: () => void; primary?: boolean }[] = [
     { icon: 'plus', label: 'Add', onPress: () => router.push('/transaction/new'), primary: true },
     { icon: 'transfer', label: 'Transfer', onPress: () => router.push('/account/transfer') },
@@ -97,28 +146,34 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Balance hero */}
-        <LinearGradient
-          colors={colors.gradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ borderRadius: radii.xxl, padding: 22, overflow: 'hidden' }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Icon name="wallet" size={15} color="rgba(255,255,255,0.9)" />
-            <AppText size={13} color="rgba(255,255,255,0.9)" weight="semibold">
-              Total Balance · {activeAccount?.name ?? '—'}
-            </AppText>
-          </View>
-          <AppText variant="heading" size={38} color="#fff" style={{ marginTop: 8 }}>
-            {formatMoney(activeAccount?.balance ?? 0, user?.currency)}
-          </AppText>
+        {/* Balance hero — swipe left to switch the active account */}
+        <GestureDetector gesture={heroPan}>
+          <Animated.View style={heroStyle}>
+            <LinearGradient
+              colors={colors.gradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ borderRadius: radii.xxl, padding: 22, overflow: 'hidden' }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon name="wallet" size={15} color="rgba(255,255,255,0.9)" />
+                <AppText size={13} color="rgba(255,255,255,0.9)" weight="semibold">
+                  Total Balance · {activeAccount?.name ?? '—'}
+                </AppText>
+              </View>
+              <AppText variant="heading" size={38} color="#fff" style={{ marginTop: 8 }}>
+                {formatMoney(activeAccount?.balance ?? 0, user?.currency)}
+              </AppText>
 
-          <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
-            <HeroChip icon="arrow-up" label="Income" value={formatMoney(income, user?.currency)} />
-            <HeroChip icon="arrow-down" label="Expense" value={formatMoney(expense, user?.currency)} />
-          </View>
-        </LinearGradient>
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 20 }}>
+                <HeroChip icon="arrow-up" label="Income" value={formatMoney(income, user?.currency)} />
+                <HeroChip icon="arrow-down" label="Expense" value={formatMoney(expense, user?.currency)} />
+              </View>
+
+              {canSwipeAccounts ? <SwipeHint /> : null}
+            </LinearGradient>
+          </Animated.View>
+        </GestureDetector>
 
         {/* Quick actions */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 22 }}>
@@ -210,6 +265,34 @@ export default function HomeScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+  )
+}
+
+/** Subtle pulsing hint shown on the hero card when more than one account exists. */
+function SwipeHint() {
+  const pulse = useSharedValue(0)
+
+  useEffect(() => {
+    pulse.value = withRepeat(
+      withSequence(withTiming(1, { duration: 700 }), withTiming(0, { duration: 700 })),
+      -1,
+    )
+  }, [pulse])
+
+  const arrowStyle = useAnimatedStyle(() => ({
+    opacity: 0.35 + pulse.value * 0.65,
+    transform: [{ translateX: pulse.value * -3 }],
+  }))
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 16 }}>
+      <Animated.View style={arrowStyle}>
+        <Icon name="chevron-left" size={12} color="rgba(255,255,255,0.9)" />
+      </Animated.View>
+      <AppText size={11} color="rgba(255,255,255,0.7)" weight="medium">
+        Swipe left to switch account
+      </AppText>
+    </View>
   )
 }
 

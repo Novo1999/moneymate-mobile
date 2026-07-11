@@ -9,13 +9,15 @@ type AmountInputProps = {
   onChangeText: (value: string) => void
   /** Tint for symbol + digits (e.g. income green / expense red). Defaults to primary. */
   color?: string
+  /** Placeholder tint — override when rendering on a dark/gradient surface. */
+  placeholderColor?: string
 }
 
 /**
  * Big borderless amount input (symbol + digits) for the transaction & transfer forms —
  * unlike `Field` it has no boxed chrome. Strips non-numeric characters as you type.
  */
-export function AmountInput({ symbol, value, onChangeText, color }: AmountInputProps) {
+export function AmountInput({ symbol, value, onChangeText, color, placeholderColor }: AmountInputProps) {
   const { colors, fonts } = useTheme()
   const tint = color ?? colors.primary
 
@@ -28,7 +30,7 @@ export function AmountInput({ symbol, value, onChangeText, color }: AmountInputP
         value={value}
         onChangeText={(t) => onChangeText(t.replace(/[^0-9.]/g, ''))}
         placeholder="0.00"
-        placeholderTextColor={colors.mutedSoft}
+        placeholderTextColor={placeholderColor ?? colors.mutedSoft}
         keyboardType="decimal-pad"
         style={{
           fontFamily: fonts.heading,
