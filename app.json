@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "MoneyMate",
-    "slug": "moneymate-mobile",
+    "slug": "moneymate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/app-icon.png",
@@ -49,7 +49,10 @@
       "reactCompiler": true
     },
     "extra": {
-      "router": {}
+      "router": {},
+      "eas": {
+        "projectId": "e8b51cb8-a53e-42bc-bee2-c86fb3f2083f"
+      }
     },
     "owner": "novodip"
   }

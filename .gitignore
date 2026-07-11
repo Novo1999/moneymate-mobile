@@ -42,3 +42,4 @@ example
 # generated native folders
 /ios
 /android
+GOOGLE_SIGNIN_SETUP.md
