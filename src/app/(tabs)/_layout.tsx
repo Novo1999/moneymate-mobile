@@ -25,7 +25,7 @@ const TABS: { name: string; label: string; icon: IconName }[] = [
 function TabBar({ state, navigation }: TabBarProps) {
   const { colors, radii } = useTheme()
   const insets = useSafeAreaInsets()
-  const router = useRouter()
+  const { push } = useRouter()
 
   // Split tabs around the central FAB (2 left, 2 right).
   const left = TABS.slice(0, 2)
@@ -68,7 +68,7 @@ function TabBar({ state, navigation }: TabBarProps) {
       {left.map(renderTab)}
 
       <View style={{ width: 72, alignItems: 'center' }}>
-        <Pressable onPress={() => router.push('/transaction/new')} style={{ marginTop: -30 }}>
+        <Pressable onPress={() => push('/transaction/new')} style={{ marginTop: -30 }}>
           <LinearGradient
             colors={colors.gradient}
             start={{ x: 0, y: 0 }}

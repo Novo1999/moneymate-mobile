@@ -1,21 +1,31 @@
 import { currencySymbol } from '@/constants/currency'
 import { format, isToday, isYesterday } from 'date-fns'
 
-/** "$1,250.00" — grouped, 2dp. */
-export function formatMoney(amount: number | string, currency?: string): string {
+// Hoisted: Intl formatters are expensive to construct, never create them per call/render.
+const AMOUNT_FORMAT = new Intl.NumberFormat('en-US', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+})
+
+/** "1,250.00" — grouped, 2dp, unsigned, no currency symbol. */
+export function formatAmount(amount: number | string): string {
   const n = typeof amount === 'string' ? Number(amount) : amount
   const safe = Number.isFinite(n) ? n : 0
-  const grouped = Math.abs(safe).toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-  return `${currencySymbol(currency)}${grouped}`
+  return AMOUNT_FORMAT.format(Math.abs(safe))
 }
 
-/** Signed money for transactions: "+$20.00" / "-$8.50". */
+/** "$1,250.00" / "-$1,250.00" — grouped, 2dp, sign preserved (balances can go negative). */
+export function formatMoney(amount: number | string, currency?: string): string {
+  const n = typeof amount === 'string' ? Number(amount) : amount
+  const sign = Number.isFinite(n) && n < 0 ? '-' : ''
+  return `${sign}${currencySymbol(currency)}${formatAmount(amount)}`
+}
+
+/** Signed money for transactions: "+$20.00" / "-$8.50". The kind decides the sign. */
 export function formatSignedMoney(amount: number | string, kind: 'income' | 'expense', currency?: string): string {
   const sign = kind === 'income' ? '+' : '-'
-  return `${sign}${formatMoney(amount, currency)}`
+  const n = typeof amount === 'string' ? Number(amount) : amount
+  return `${sign}${formatMoney(Math.abs(Number.isFinite(n) ? n : 0), currency)}`
 }
 
 /** Compact balance for hero cards: keeps cents but groups thousands. */

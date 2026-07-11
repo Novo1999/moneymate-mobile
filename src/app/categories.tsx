@@ -13,8 +13,8 @@ import { Pressable, ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function CategoriesScreen() {
-  const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { colors } = useTheme()
+  const { back, push } = useRouter()
   const dataVersion = useAtomValue(dataVersionAtom)
   const categoriesQ = useAsync(() => listCategories(), [dataVersion])
 
@@ -48,45 +48,18 @@ export default function CategoriesScreen() {
     }
   }
 
-  const Section = ({ title, items }: { title: string; items: Category[] }) =>
-    items.length === 0 ? null : (
-      <>
-        <AppText weight="bold" size={12} color={colors.mutedSoft} style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 22, marginBottom: 12, marginLeft: 2 }}>
-          {title}
-        </AppText>
-        <View style={{ gap: 11 }}>
-          {items.map((c) => (
-            <View
-              key={c.id}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 13 }}
-            >
-              <View style={{ width: 46, height: 46, borderRadius: radii.md, backgroundColor: colors.primarySoftBg, alignItems: 'center', justifyContent: 'center' }}>
-                <AppText size={22}>{c.icon || '🏷️'}</AppText>
-              </View>
-              <AppText weight="bold" size={15} color={colors.heading} style={{ flex: 1 }}>
-                {c.name}
-              </AppText>
-              <Pressable onPress={() => onDelete(c)} hitSlop={8} style={{ padding: 6 }}>
-                <Icon name="trash" size={18} color={colors.danger} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      </>
-    )
-
   const isEmpty = (categoriesQ.data ?? []).length === 0
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.screen }} edges={['top', 'bottom']}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <IconButton name="chevron-left" onPress={() => router.back()} />
+          <IconButton name="chevron-left" onPress={() => back()} />
           <AppText variant="heading" size={22} color={colors.heading}>
             Categories
           </AppText>
         </View>
-        <IconButton name="plus" color="#fff" onPress={() => router.push('/category/new')} style={{ backgroundColor: colors.primary, borderColor: colors.primary }} />
+        <IconButton name="plus" color="#fff" onPress={() => push('/category/new')} style={{ backgroundColor: colors.primary, borderColor: colors.primary }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}>
@@ -96,8 +69,8 @@ export default function CategoriesScreen() {
           <EmptyState icon="tag" title="No custom categories" subtitle="Create your own categories to organise transactions your way." />
         ) : (
           <>
-            <Section title="Expense" items={expense} />
-            <Section title="Income" items={income} />
+            <CategorySection title="Expense" items={expense} onDelete={onDelete} />
+            <CategorySection title="Income" items={income} onDelete={onDelete} />
           </>
         )}
       </ScrollView>
@@ -111,5 +84,35 @@ export default function CategoriesScreen() {
         onConfirm={confirmDelete}
       />
     </SafeAreaView>
+  )
+}
+
+function CategorySection({ title, items, onDelete }: { title: string; items: Category[]; onDelete: (cat: Category) => void }) {
+  const { colors, radii } = useTheme()
+  if (items.length === 0) return null
+  return (
+    <>
+      <AppText weight="bold" size={12} color={colors.mutedSoft} style={{ textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 22, marginBottom: 12, marginLeft: 2 }}>
+        {title}
+      </AppText>
+      <View style={{ gap: 11 }}>
+        {items.map((c) => (
+          <View
+            key={c.id}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 13, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.lg, padding: 13 }}
+          >
+            <View style={{ width: 46, height: 46, borderRadius: radii.md, backgroundColor: colors.primarySoftBg, alignItems: 'center', justifyContent: 'center' }}>
+              <AppText size={22}>{c.icon || '🏷️'}</AppText>
+            </View>
+            <AppText weight="bold" size={15} color={colors.heading} style={{ flex: 1 }}>
+              {c.name}
+            </AppText>
+            <Pressable onPress={() => onDelete(c)} hitSlop={8} style={{ padding: 6 }}>
+              <Icon name="trash" size={18} color={colors.danger} />
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </>
   )
 }

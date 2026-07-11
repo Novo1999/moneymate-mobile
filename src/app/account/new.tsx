@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function NewAccount() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   const bumpData = useSetAtom(dataVersionAtom)
   const [name, setName] = useState('')
   const [balance, setBalance] = useState('')
@@ -26,7 +26,7 @@ export default function NewAccount() {
     try {
       await addAccount({ name: name.trim(), balance: Number(balance) || 0 })
       bumpData((v) => v + 1)
-      router.back()
+      back()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to add account')
     } finally {

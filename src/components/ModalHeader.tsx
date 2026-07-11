@@ -6,7 +6,7 @@ import { Pressable, View } from 'react-native'
 
 export function ModalHeader({ title }: { title: string }) {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 6, marginBottom: 8 }}>
       <View style={{ width: 40 }} />
@@ -14,7 +14,7 @@ export function ModalHeader({ title }: { title: string }) {
         {title}
       </AppText>
       <Pressable
-        onPress={() => router.back()}
+        onPress={() => back()}
         hitSlop={8}
         style={{ width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.segmentBg, alignItems: 'center', justifyContent: 'center' }}
       >

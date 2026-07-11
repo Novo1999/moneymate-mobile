@@ -7,34 +7,40 @@ type AsyncState<T> = {
   reload: () => void
 }
 
+type Settled = { key: unknown[]; error: string | null }
+
+function sameKey(a: unknown[], b: unknown[]): boolean {
+  return a.length === b.length && a.every((v, i) => Object.is(v, b[i]))
+}
+
 /** Minimal data-fetching hook: runs `fn` whenever `deps` change, with manual reload. */
 export function useAsync<T>(fn: () => Promise<T>, deps: unknown[], enabled = true): AsyncState<T> {
   const [data, setData] = useState<T | null>(null)
-  const [loading, setLoading] = useState<boolean>(enabled)
-  const [error, setError] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
+  // Ground truth: the deps snapshot of the last run that settled. `loading` and
+  // `error` are derived from it, so effects never set state synchronously.
+  const [settled, setSettled] = useState<Settled | null>(null)
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
+  const key = [...deps, tick]
+  const isCurrent = settled !== null && sameKey(settled.key, key)
+  const loading = enabled && !isCurrent
+  const error = isCurrent ? settled.error : null
+
   useEffect(() => {
-    if (!enabled) {
-      setLoading(false)
-      return
-    }
+    if (!enabled) return
     let active = true
-    setLoading(true)
-    setError(null)
     fn()
       .then((result) => {
         if (active) {
           setData(result)
-          setLoading(false)
+          setSettled({ key, error: null })
         }
       })
       .catch((e) => {
         if (active) {
-          setError(e instanceof Error ? e.message : 'Something went wrong')
-          setLoading(false)
+          setSettled({ key, error: e instanceof Error ? e.message : 'Something went wrong' })
         }
       })
     return () => {

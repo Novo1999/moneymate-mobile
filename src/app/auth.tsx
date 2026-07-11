@@ -10,7 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Image } from 'expo-image'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -29,14 +29,14 @@ export default function AuthScreen() {
     handleSubmit,
     setValue,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
     defaultValues: { mode: 'signin', name: '', email: '', password: '', confirmPassword: '', currency: 'USD' },
   })
 
-  const currency = watch('currency')
+  // useWatch (not watch()) — subscription-based, so it stays React Compiler compatible.
+  const currency = useWatch({ control, name: 'currency' })
 
   const switchMode = (next: Mode) => {
     setMode(next)

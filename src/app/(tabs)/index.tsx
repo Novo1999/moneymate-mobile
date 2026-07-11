@@ -41,7 +41,7 @@ function greeting() {
 
 export default function HomeScreen() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { push } = useRouter()
   const { user, activeAccountId, setActiveAccount } = useAuth()
   const dataVersion = useAtomValue(dataVersionAtom)
   const setEditingTx = useSetAtom(editingTransactionAtom)
@@ -65,7 +65,7 @@ export default function HomeScreen() {
 
   const accounts = accountsQ.data ?? []
   const activeAccount = accounts.find((a) => a.id === activeAccountId) ?? accounts[0]
-  const monthTx = infoQ.data?.transactions ?? []
+  const monthTx = useMemo(() => infoQ.data?.transactions ?? [], [infoQ.data])
   const { income, expense } = useMemo(() => summarize(monthTx), [monthTx])
   const slices = useMemo(() => expenseByCategory(monthTx), [monthTx])
   const topSlices = slices.slice(0, 4)
@@ -91,8 +91,8 @@ export default function HomeScreen() {
     const idx = accounts.findIndex((a) => a.id === activeAccount?.id)
     const next = accounts[(idx + 1) % accounts.length]
     setActiveAccount(next.id)
-    heroTranslateX.value = screenWidth
-    heroTranslateX.value = withTiming(0, { duration: 280 })
+    heroTranslateX.set(screenWidth)
+    heroTranslateX.set(withTiming(0, { duration: 280 }))
   }
 
   const heroPan = Gesture.Pan()
@@ -101,27 +101,29 @@ export default function HomeScreen() {
     .failOffsetY([-14, 14])
     .onUpdate((e) => {
       // Track the finger going left; rubber-band slightly on rightward drags.
-      heroTranslateX.value = e.translationX < 0 ? e.translationX : e.translationX * 0.12
+      heroTranslateX.set(e.translationX < 0 ? e.translationX : e.translationX * 0.12)
     })
     .onEnd((e) => {
       if (e.translationX < -SWIPE_THRESHOLD) {
-        heroTranslateX.value = withTiming(-screenWidth, { duration: 200 }, (finished) => {
-          if (finished) scheduleOnRN(switchToNextAccount)
-        })
+        heroTranslateX.set(
+          withTiming(-screenWidth, { duration: 200 }, (finished) => {
+            if (finished) scheduleOnRN(switchToNextAccount)
+          }),
+        )
       } else {
-        heroTranslateX.value = withSpring(0, { damping: 18, stiffness: 220 })
+        heroTranslateX.set(withSpring(0, { damping: 18, stiffness: 220 }))
       }
     })
   const heroStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: heroTranslateX.value }],
-    opacity: 1 - Math.min(1, Math.abs(heroTranslateX.value) / screenWidth) * 0.5,
+    transform: [{ translateX: heroTranslateX.get() }],
+    opacity: 1 - Math.min(1, Math.abs(heroTranslateX.get()) / screenWidth) * 0.5,
   }))
 
   const quickActions: { icon: IconName; label: string; onPress: () => void; primary?: boolean }[] = [
-    { icon: 'plus', label: 'Add', onPress: () => router.push('/transaction/new'), primary: true },
-    { icon: 'transfer', label: 'Transfer', onPress: () => router.push('/account/transfer') },
-    { icon: 'tag', label: 'Categories', onPress: () => router.push('/categories') },
-    { icon: 'chart-pie', label: 'Accounts', onPress: () => router.push('/(tabs)/accounts') },
+    { icon: 'plus', label: 'Add', onPress: () => push('/transaction/new'), primary: true },
+    { icon: 'transfer', label: 'Transfer', onPress: () => push('/account/transfer') },
+    { icon: 'tag', label: 'Categories', onPress: () => push('/categories') },
+    { icon: 'chart-pie', label: 'Accounts', onPress: () => push('/(tabs)/accounts') },
   ]
 
   return (
@@ -243,7 +245,7 @@ export default function HomeScreen() {
         </Card>
 
         {/* Recent activity */}
-        <SectionHeader title="Recent Activity" actionLabel="See all" onAction={() => router.push('/(tabs)/transactions')} />
+        <SectionHeader title="Recent Activity" actionLabel="See all" onAction={() => push('/(tabs)/transactions')} />
         {recentQ.loading ? (
           <Loader size="small" />
         ) : recent.length === 0 ? (
@@ -257,7 +259,7 @@ export default function HomeScreen() {
                 currency={user?.currency}
                 onPress={() => {
                   setEditingTx(t)
-                  router.push({ pathname: '/transaction/[id]', params: { id: String(t.id) } })
+                  push({ pathname: '/transaction/[id]', params: { id: String(t.id) } })
                 }}
               />
             ))}
@@ -273,15 +275,14 @@ function SwipeHint() {
   const pulse = useSharedValue(0)
 
   useEffect(() => {
-    pulse.value = withRepeat(
-      withSequence(withTiming(1, { duration: 700 }), withTiming(0, { duration: 700 })),
-      -1,
+    pulse.set(
+      withRepeat(withSequence(withTiming(1, { duration: 700 }), withTiming(0, { duration: 700 })), -1),
     )
   }, [pulse])
 
   const arrowStyle = useAnimatedStyle(() => ({
-    opacity: 0.35 + pulse.value * 0.65,
-    transform: [{ translateX: pulse.value * -3 }],
+    opacity: 0.35 + pulse.get() * 0.65,
+    transform: [{ translateX: pulse.get() * -3 }],
   }))
 
   return (

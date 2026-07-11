@@ -25,18 +25,18 @@ function RootNavigator() {
   const { colors, mode } = useTheme()
   const { status } = useAuth()
   const segments = useSegments()
-  const router = useRouter()
+  const { replace } = useRouter()
 
   useEffect(() => {
     if (status === 'loading') return
     const inAuth = segments[0] === 'auth'
 
     if (status === 'unauthenticated' && !inAuth) {
-      router.replace('/auth')
+      replace('/auth')
     } else if (status === 'authenticated' && inAuth) {
-      router.replace('/(tabs)')
+      replace('/(tabs)')
     }
-  }, [status, segments, router])
+  }, [status, segments, replace])
 
   return (
     <>

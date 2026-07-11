@@ -17,7 +17,7 @@ const EMOJIS = ['🍔', '🛍️', '🏠', '🚕', '🚗', '🎬', '📱', '🏦
 
 export default function NewCategory() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   const { user } = useAuth()
   const bumpData = useSetAtom(dataVersionAtom)
 
@@ -35,7 +35,7 @@ export default function NewCategory() {
     try {
       await addCategory({ userId: user.id, name: name.trim(), type, icon })
       bumpData((v) => v + 1)
-      router.back()
+      back()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to add category')
     } finally {

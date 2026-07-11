@@ -13,13 +13,13 @@ import { useTheme } from '@/theme/ThemeProvider'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useSetAtom } from 'jotai'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function AccountDetail() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   const { id } = useLocalSearchParams<{ id: string }>()
   const accountId = Number(id)
   const { user, activeAccountId, setActiveAccount } = useAuth()
@@ -28,17 +28,15 @@ export default function AccountDetail() {
   const accountQ = useAsync(() => getAccount(accountId), [accountId])
   const txQ = useAsync(() => getTransactionsPaginated(accountId, 0, 8), [accountId])
 
-  const [name, setName] = useState('')
+  // Fallback state: undefined = user hasn't typed yet, show the fetched name.
+  const [nameEdit, setNameEdit] = useState<string | undefined>(undefined)
   const [saving, setSaving] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (accountQ.data?.name) setName(accountQ.data.name)
-  }, [accountQ.data?.name])
-
   const account = accountQ.data
+  const name = nameEdit ?? account?.name ?? ''
   const isActive = account?.id === activeAccountId
   const transactions = txQ.data?.transactions ?? []
 
@@ -49,7 +47,7 @@ export default function AccountDetail() {
     try {
       await editAccount(accountId, { name: name.trim() })
       bumpData((v) => v + 1)
-      router.back()
+      back()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to update account')
     } finally {
@@ -63,7 +61,7 @@ export default function AccountDetail() {
       await deleteAccount(accountId)
       bumpData((v) => v + 1)
       setDeleteOpen(false)
-      router.back()
+      back()
     } catch (e) {
       setDeleteOpen(false)
       setError(e instanceof ApiError ? e.message : 'Failed to delete')
@@ -93,7 +91,7 @@ export default function AccountDetail() {
             </LinearGradient>
 
             <View style={{ marginTop: 20, gap: 14 }}>
-              <Field label="Account name" icon="wallet" value={name} onChangeText={setName} autoCapitalize="words" />
+              <Field label="Account name" icon="wallet" value={name} onChangeText={setNameEdit} autoCapitalize="words" />
               <Button title={isActive ? 'Active account' : 'Set as active'} variant={isActive ? 'soft' : 'outline'} icon={isActive ? 'check' : 'cards'} onPress={() => setActiveAccount(account.id)} />
             </View>
 

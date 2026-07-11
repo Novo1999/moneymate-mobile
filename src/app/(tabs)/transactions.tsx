@@ -3,7 +3,7 @@ import { AppText, Pill } from '@/components/ui'
 import { EmptyState, Loader } from '@/components/ui/States'
 import { categoriesForKind, categoryLabel } from '@/constants/categories'
 import { getTransactionsPaginated } from '@/lib/api/transaction'
-import { dayGroupLabel, dayKey } from '@/lib/format'
+import { dayGroupLabel, dayKey, formatAmount } from '@/lib/format'
 import { dataVersionAtom, editingTransactionAtom, txFilterAtom } from '@/state/atoms'
 import { useAuth } from '@/state/auth'
 import { useTheme } from '@/theme/ThemeProvider'
@@ -18,14 +18,13 @@ const PAGE_SIZE = 15
 
 export default function TransactionsScreen() {
   const { colors } = useTheme()
-  const router = useRouter()
+  const { push } = useRouter()
   const { user, activeAccountId } = useAuth()
   const dataVersion = useAtomValue(dataVersionAtom)
   const [filter, setFilter] = useAtom(txFilterAtom)
   const setEditingTx = useSetAtom(editingTransactionAtom)
 
   const [items, setItems] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [cursor, setCursor] = useState(0)
   const [hasMore, setHasMore] = useState(true)
@@ -34,12 +33,17 @@ export default function TransactionsScreen() {
   const typeFilter = filter.type ?? ''
   const categoryFilter = filter.category ?? ''
 
+  // Ground truth: which request last settled. `loading` is derived, never set in an effect.
+  const requestKey = `${activeAccountId}|${typeFilter}|${categoryFilter}|${dataVersion}`
+  const [settledKey, setSettledKey] = useState<string | null>(null)
+  const loading = !!activeAccountId && settledKey !== requestKey
+
+  // `replaceKey` non-null = fresh first page for that request key; null = append next page.
   const fetchPage = useCallback(
-    async (nextCursor: number, replace: boolean) => {
+    async (nextCursor: number, replaceKey: string | null) => {
       if (!activeAccountId) return
       const id = ++reqId.current
-      if (replace) setLoading(true)
-      else setLoadingMore(true)
+      const replace = replaceKey !== null
       try {
         const page = await getTransactionsPaginated(activeAccountId, nextCursor, PAGE_SIZE, filter)
         if (id !== reqId.current) return
@@ -51,8 +55,8 @@ export default function TransactionsScreen() {
         if (id === reqId.current && replace) setItems([])
       } finally {
         if (id === reqId.current) {
-          setLoading(false)
           setLoadingMore(false)
+          if (replaceKey !== null) setSettledKey(replaceKey)
         }
       }
     },
@@ -60,11 +64,15 @@ export default function TransactionsScreen() {
   )
 
   useEffect(() => {
-    fetchPage(0, true)
-  }, [fetchPage, dataVersion])
+    fetchPage(0, requestKey)
+  }, [fetchPage, requestKey])
 
   const loadMore = () => {
-    if (!loadingMore && hasMore && cursor) fetchPage(cursor, false)
+    if (!loadingMore && hasMore && cursor) {
+      // Set here (from the scroll callback) so fetchPage never sets state synchronously in the effect path.
+      setLoadingMore(true)
+      fetchPage(cursor, null)
+    }
   }
 
   const sections = useMemo(() => groupByDay(items), [items])
@@ -118,7 +126,7 @@ export default function TransactionsScreen() {
               </AppText>
               <AppText weight="bold" size={12} color={section.net >= 0 ? colors.income : colors.danger}>
                 {section.net >= 0 ? '+' : '−'}
-                {Math.abs(section.net).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {formatAmount(section.net)}
               </AppText>
             </View>
           )}
@@ -130,7 +138,7 @@ export default function TransactionsScreen() {
                 showDate={false}
                 onPress={() => {
                   setEditingTx(item)
-                  router.push({ pathname: '/transaction/[id]', params: { id: String(item.id) } })
+                  push({ pathname: '/transaction/[id]', params: { id: String(item.id) } })
                 }}
               />
             </View>

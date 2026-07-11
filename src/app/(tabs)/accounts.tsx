@@ -23,7 +23,7 @@ const CARD_GRADIENTS: [string, string][] = [
 
 export default function AccountsScreen() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { push } = useRouter()
   const { user, activeAccountId, setActiveAccount } = useAuth()
   const dataVersion = useAtomValue(dataVersionAtom)
   const accountsQ = useAsync(() => listAccounts(), [dataVersion])
@@ -42,7 +42,7 @@ export default function AccountsScreen() {
           <AppText variant="heading" size={24} color={colors.heading}>
             Accounts
           </AppText>
-          <IconButton name="transfer" onPress={() => router.push('/account/transfer')} />
+          <IconButton name="transfer" onPress={() => push('/account/transfer')} />
         </View>
 
         <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }} padding={18}>
@@ -71,14 +71,14 @@ export default function AccountsScreen() {
               currency={user?.currency}
               gradient={CARD_GRADIENTS[i % CARD_GRADIENTS.length]}
               isActive={account.id === activeAccountId}
-              onPress={() => router.push({ pathname: '/account/[id]', params: { id: String(account.id) } })}
+              onPress={() => push({ pathname: '/account/[id]', params: { id: String(account.id) } })}
               onSetActive={() => setActiveAccount(account.id)}
             />
           ))
         )}
 
         <Pressable
-          onPress={() => router.push('/account/new')}
+          onPress={() => push('/account/new')}
           style={{
             marginTop: 6,
             borderWidth: 2,

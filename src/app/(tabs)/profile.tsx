@@ -10,7 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ProfileScreen() {
   const { colors, mode, setPreference } = useTheme()
-  const router = useRouter()
+  const { push } = useRouter()
   const { user, logout, updateUser } = useAuth()
   const [currencyOpen, setCurrencyOpen] = useState(false)
   const [savingCurrency, setSavingCurrency] = useState(false)
@@ -79,9 +79,9 @@ export default function ProfileScreen() {
 
         <GroupLabel>Manage</GroupLabel>
         <Group>
-          <Row icon="tag" label="Categories" onPress={() => router.push('/categories')} first chevron />
-          <Row icon="cards" label="Accounts" onPress={() => router.push('/(tabs)/accounts')} chevron />
-          <Row icon="transfer" label="Transfer money" onPress={() => router.push('/account/transfer')} last chevron />
+          <Row icon="tag" label="Categories" onPress={() => push('/categories')} first chevron />
+          <Row icon="cards" label="Accounts" onPress={() => push('/(tabs)/accounts')} chevron />
+          <Row icon="transfer" label="Transfer money" onPress={() => push('/account/transfer')} last chevron />
         </Group>
 
         <View style={{ marginTop: 24 }}>

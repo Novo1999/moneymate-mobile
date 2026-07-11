@@ -8,6 +8,7 @@ import { useAsync } from '@/hooks/useAsync'
 import { listAccounts } from '@/lib/api/accountType'
 import { addTransaction, deleteTransaction, editTransaction } from '@/lib/api/transaction'
 import { ApiError } from '@/lib/api/client'
+import { formatMoney } from '@/lib/format'
 import { dataVersionAtom } from '@/state/atoms'
 import { useAuth } from '@/state/auth'
 import { useTheme } from '@/theme/ThemeProvider'
@@ -24,7 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export function TransactionForm({ existing }: { existing?: Transaction }) {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   const { user, activeAccountId } = useAuth()
   const bumpData = useSetAtom(dataVersionAtom)
   const isEdit = !!existing
@@ -77,7 +78,7 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
         })
       }
       bumpData((v) => v + 1)
-      router.back()
+      back()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Failed to save transaction')
     } finally {
@@ -92,7 +93,7 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
       await deleteTransaction(existing.id)
       bumpData((v) => v + 1)
       setDeleteOpen(false)
-      router.back()
+      back()
     } catch (e) {
       setDeleteOpen(false)
       setError(e instanceof ApiError ? e.message : 'Failed to delete')
@@ -201,8 +202,7 @@ export function TransactionForm({ existing }: { existing?: Transaction }) {
                         {a.name}
                       </AppText>
                       <AppText size={11} color={selected ? 'rgba(255,255,255,0.85)' : colors.mutedSoft} style={{ marginTop: 2 }}>
-                        {currencySymbol(user?.currency)}
-                        {Number(a.balance).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {formatMoney(a.balance, user?.currency)}
                       </AppText>
                     </Pressable>
                   )

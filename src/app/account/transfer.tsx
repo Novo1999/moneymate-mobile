@@ -21,7 +21,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function TransferScreen() {
   const { colors, radii } = useTheme()
-  const router = useRouter()
+  const { back } = useRouter()
   const { user } = useAuth()
   const bumpData = useSetAtom(dataVersionAtom)
   const accountsQ = useAsync(() => listAccounts(), [])
@@ -55,7 +55,8 @@ export default function TransferScreen() {
   }
 
   const setPctOfBalance = (pct: number) => {
-    setAmount(String(Math.floor(available * pct * 100) / 100))
+    // Balances can be negative — clamp so the buttons never produce a negative amount.
+    setAmount(String(Math.max(0, Math.floor(available * pct * 100) / 100)))
   }
 
   const submit = async () => {
@@ -64,12 +65,13 @@ export default function TransferScreen() {
     if (!fromId || !toId) return setError('Pick both accounts')
     if (fromId === toId) return setError('Choose two different accounts')
     if (!value || value <= 0) return setError('Enter an amount greater than 0')
-    if (fromAccount && value > available) return setError(`Not enough balance in ${fromAccount.name}`)
+    if (fromAccount && value > available)
+      return setError(`Not enough balance in ${fromAccount.name} (available: ${formatMoney(available, user?.currency)})`)
     setSubmitting(true)
     try {
       await transferBalance({ fromAccountId: fromId, toAccountId: toId, amount: value, note: note || undefined })
       bumpData((v) => v + 1)
-      router.back()
+      back()
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Transfer failed')
     } finally {
