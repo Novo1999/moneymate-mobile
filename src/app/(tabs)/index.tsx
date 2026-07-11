@@ -139,7 +139,7 @@ export default function HomeScreen() {
         {/* Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <Avatar name={user?.name} />
+            <Avatar name={user?.name} uri={user?.avatarUrl} />
             <View>
               <AppText size={13} color={colors.muted} weight="medium">
                 {greeting()} 👋

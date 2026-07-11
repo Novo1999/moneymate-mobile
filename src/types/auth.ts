@@ -10,6 +10,7 @@ export type User = {
   viewMode?: string
   activeAccountTypeId?: number | null
   interval?: { from: string; to: string } | null
+  avatarUrl?: string | null
 }
 
 /** Shape returned by POST /auth/login and /auth/google (data field). */
@@ -41,4 +42,5 @@ export type UpdateUserPayload = Partial<{
   firstDayOfMonth: number
   viewMode: string
   activeAccountTypeId: number
+  avatarUrl: string
 }>

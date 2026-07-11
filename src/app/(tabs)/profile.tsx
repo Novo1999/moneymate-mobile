@@ -1,11 +1,13 @@
 import { Icon, type IconName } from '@/components/Icon'
 import { AppText, Avatar, Button, ConfirmSheet, Pill, Sheet } from '@/components/ui'
 import { currencySymbol, POPULAR_CURRENCIES } from '@/constants/currency'
+import { uploadImageToImgbb } from '@/lib/imgbb'
 import { useTheme } from '@/theme/ThemeProvider'
 import { useAuth } from '@/state/auth'
+import * as ImagePicker from 'expo-image-picker'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import { Pressable, ScrollView, Switch, View } from 'react-native'
+import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function ProfileScreen() {
@@ -16,8 +18,33 @@ export default function ProfileScreen() {
   const [savingCurrency, setSavingCurrency] = useState(false)
   const [logoutOpen, setLogoutOpen] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
 
   const isDark = mode === 'dark'
+
+  const pickAvatar = async () => {
+    if (uploadingAvatar) return
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    })
+    const asset = result.assets?.[0]
+    if (result.canceled || !asset?.base64) return
+
+    setUploadingAvatar(true)
+    try {
+      const url = await uploadImageToImgbb(asset.base64)
+      await updateUser({ avatarUrl: url })
+    } catch (e) {
+      console.error('Avatar upload failed', e)
+      Alert.alert('Upload failed', 'Could not update your profile picture. Please try again.')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
 
   const pickCurrency = async (code: string) => {
     setSavingCurrency(true)
@@ -44,7 +71,41 @@ export default function ProfileScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 28 }}>
         {/* Profile header */}
         <View style={{ alignItems: 'center', paddingTop: 16, paddingBottom: 24 }}>
-          <Avatar name={user?.name} size={84} radius={28} />
+          <Pressable onPress={pickAvatar} disabled={uploadingAvatar}>
+            <Avatar name={user?.name} uri={user?.avatarUrl} size={84} radius={28} />
+            {uploadingAvatar ? (
+              <View
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: 28,
+                  backgroundColor: 'rgba(0,0,0,0.35)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <ActivityIndicator color="#fff" />
+              </View>
+            ) : (
+              <View
+                style={{
+                  position: 'absolute',
+                  right: -4,
+                  bottom: -4,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: colors.primary,
+                  borderWidth: 2,
+                  borderColor: colors.screen,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name="camera" size={15} color="#fff" />
+              </View>
+            )}
+          </Pressable>
           <AppText variant="heading" size={20} color={colors.heading} style={{ marginTop: 14 }}>
             {user?.name ?? 'MoneyMate user'}
           </AppText>

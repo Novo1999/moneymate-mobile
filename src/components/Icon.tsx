@@ -44,6 +44,7 @@ export type IconName =
   | 'tag'
   | 'shield'
   | 'info'
+  | 'camera'
 
 const GLYPHS: Record<IconName, MaterialName> = {
   home: 'home-variant-outline',
@@ -86,6 +87,7 @@ const GLYPHS: Record<IconName, MaterialName> = {
   tag: 'tag-outline',
   shield: 'shield-check-outline',
   info: 'information-outline',
+  camera: 'camera-outline',
 }
 
 type IconProps = {
