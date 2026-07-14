@@ -219,7 +219,7 @@ function AccountSelector({
       <AppText weight="bold" size={13} color={colors.muted} style={{ marginBottom: 10, marginLeft: 2 }}>
         {label}
       </AppText>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, flexGrow: 1 }}>
         {accounts.map((a) => {
           const selected = a.id === selectedId
           const badge = (
@@ -247,7 +247,7 @@ function AccountSelector({
             </View>
           )
           return (
-            <Pressable key={a.id} onPress={() => onSelect(a.id)}>
+            <Pressable key={a.id} onPress={() => onSelect(a.id)} style={{ flexGrow: 1 }}>
               {selected ? (
                 <LinearGradient
                   colors={colors.gradient}

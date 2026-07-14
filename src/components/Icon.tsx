@@ -6,6 +6,7 @@ type MaterialName = ComponentProps<typeof MaterialCommunityIcons>['name']
 export type IconName =
   | 'home'
   | 'activity'
+  | 'transactions'
   | 'cards'
   | 'profile'
   | 'plus'
@@ -49,6 +50,7 @@ export type IconName =
 const GLYPHS: Record<IconName, MaterialName> = {
   home: 'home-variant-outline',
   activity: 'swap-vertical',
+  transactions: 'receipt-text-outline',
   cards: 'credit-card-outline',
   profile: 'account-circle-outline',
   plus: 'plus',

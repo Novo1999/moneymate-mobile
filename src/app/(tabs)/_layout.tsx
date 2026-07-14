@@ -17,8 +17,8 @@ type TabBarProps = {
 
 const TABS: { name: string; label: string; icon: IconName }[] = [
   { name: 'index', label: 'Home', icon: 'home' },
-  { name: 'transactions', label: 'Activity', icon: 'activity' },
-  { name: 'accounts', label: 'Cards', icon: 'cards' },
+  { name: 'transactions', label: 'Transactions', icon: 'transactions' },
+  { name: 'accounts', label: 'Accounts', icon: 'wallet' },
   { name: 'profile', label: 'Profile', icon: 'profile' },
 ]
 
